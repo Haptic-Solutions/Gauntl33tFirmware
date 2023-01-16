@@ -13,6 +13,7 @@
 #include <SimpleFOC.h>
 #include <Wire.h>
 #include "FingerPosition.h"
+#include <string>
 
 //finger position classes
 Gauntl33t::FingerPosition* fingerPosition0;
@@ -120,7 +121,7 @@ void setup() {
   MotorSensorSetup(motor2,sensor2,driver2,2);
 
   // add target command T
-  command.add('T', doTarget, "target voltage");
+  //command.add('T', doTarget, "target voltage");
 
   Serial.println(F("Motor ready."));
   Serial.println(F("Set the target voltage using serial terminal:"));
@@ -156,34 +157,50 @@ void MotorLoop(BLDCMotor& aMotor,MagneticSensorI2C& aSensor, uint8_t aChannel)
   aMotor.move(target_voltage);
   
   auto angle = aSensor.getSensorAngle();
+  //Serial.print(String(angle).c_str());
 
   Gauntl33t::FingerPosition* fingerPosition;
   switch(aChannel)
   {
     case 0:
+      if(fingerPosition0 == NULL)
+      {
+        fingerPosition0 = new Gauntl33t::FingerPosition(angle);
+      }
       fingerPosition = fingerPosition0;
       break;
     case 1:
+      if(fingerPosition1 == NULL)
+      {
+        fingerPosition1 = new Gauntl33t::FingerPosition(angle);
+      }
       fingerPosition = fingerPosition1;
+      Serial.println(String(fingerPosition->GetFingerPosition()).c_str());
       break;
     case 2:
+      if(fingerPosition2 == NULL)
+      {
+        fingerPosition2 = new Gauntl33t::FingerPosition(angle);
+      }
       fingerPosition = fingerPosition2;
+      
       break;
     default:
       fingerPosition = fingerPosition0;
   }
   if(fingerPosition == NULL)
   {
-    fingerPosition = new Gauntl33t::FingerPosition(angle);
+    Serial.print("error");
+    return;
   }
   fingerPosition->SensorUpdatePos(angle);
   auto fingerPos = fingerPosition->GetFingerPosition();
   String position = "{";
   position += aChannel;
   position += ":";
-  position += fingerPos;
+  position += String(angle);
   position += "}\n";
-  Serial.write(position.c_str());
+  //Serial.write(position.c_str());
   switch(aChannel)
   {
     case 0:

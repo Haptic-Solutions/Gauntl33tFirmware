@@ -11,7 +11,12 @@ namespace Gauntl33t
   void FingerPosition::SensorUpdatePos(float aAngle)
   {
     //get non cumulative dif
-    auto dif = abs(aAngle - mPrevAngle);
+    float dif = abs(aAngle - mPrevAngle);
+
+    if(dif == 0.0f)
+    {
+      return;
+    }
     //if the non cumulative angle is greater than the previous non cumulative angle.
     if(aAngle > mPrevAngle)
     {
@@ -31,7 +36,7 @@ namespace Gauntl33t
       //if the difference is less than half a rotation subtract the difference from the cumulative total.
       if(dif < PI)
       {
-        mMinAngle_Cumulative -= dif;
+        mCurAngle_Cumulative -= dif;
       }
       //otherwise presume passed the boundary and compute increase. Add to cumulative angle.
       else
@@ -43,11 +48,13 @@ namespace Gauntl33t
     if(mMaxAngle_Cumulative < mCurAngle_Cumulative)
     {
       mMaxAngle_Cumulative = mCurAngle_Cumulative;
+      //Serial.print(String(mMaxAngle_Cumulative).c_str());
     }
     //check if new min
     if(mMinAngle_Cumulative > mCurAngle_Cumulative)
     {
       mMinAngle_Cumulative = mCurAngle_Cumulative;
+      //Serial.print(String(mMinAngle_Cumulative).c_str());
     }
     //update prev angle
     mPrevAngle = aAngle;
@@ -56,11 +63,13 @@ namespace Gauntl33t
   //send normalized value between 0.0 and 1.0
   float FingerPosition::GetFingerPosition()
   {
-    auto dif = mMaxAngle_Cumulative - mMinAngle_Cumulative;
-    auto val = mCurAngle_Cumulative;
-    if(mMinAngle_Cumulative < 0.0f)
+    float dif = mMaxAngle_Cumulative - mMinAngle_Cumulative;
+    //Serial.write(String(dif).c_str());
+    float val = mCurAngle_Cumulative + (0.0f - mMinAngle_Cumulative);
+
+    if(dif == 0.0f)
     {
-      val += (0.0f - mMinAngle_Cumulative);
+      return 0.0;
     }
     return val/dif;
   }
