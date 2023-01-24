@@ -8,7 +8,8 @@
  */
 
 //#define TEENSY0 //U1
-#define TEENSY1  //U2
+//#define TEENSY1  //U2
+#define MICROMOD
 
 #include <SimpleFOC.h>
 #include <Wire.h>
@@ -17,24 +18,44 @@
 #include "MagneticSensorSoftI2C.h"
 #include <SoftWire.h>
 
+#if defined(TEENSY0) || defined(TEENSY1)
 SoftWire SWire(18,19);
 SoftWire SWire1(17,16);
 SoftWire SWire2(25,24);
+#endif
+
+#ifdef MICROMOD
+SoftWire SWire(18,19);
+SoftWire SWire1(25,24);
+SoftWire SWire2(38,39);
+SoftWire SWire3(41,40);
+SoftWire SWire4(36,37);
+SoftWire SWire5(35,34);
+#endif
 
 //finger position classes
 Gauntl33t::FingerPosition* fingerPosition0;
 Gauntl33t::FingerPosition* fingerPosition1;
 Gauntl33t::FingerPosition* fingerPosition2;
+Gauntl33t::FingerPosition* fingerPosition3;
+Gauntl33t::FingerPosition* fingerPosition4;
+Gauntl33t::FingerPosition* fingerPosition5;
 
 // magnetic sensor instance - SPI
 MagneticSensorSoftI2C sensor0 = MagneticSensorSoftI2C(AS5600_I2C);
 MagneticSensorSoftI2C sensor1 = MagneticSensorSoftI2C(AS5600_I2C);
 MagneticSensorSoftI2C sensor2 = MagneticSensorSoftI2C(AS5600_I2C);
+MagneticSensorSoftI2C sensor3 = MagneticSensorSoftI2C(AS5600_I2C);
+MagneticSensorSoftI2C sensor4 = MagneticSensorSoftI2C(AS5600_I2C);
+MagneticSensorSoftI2C sensor5 = MagneticSensorSoftI2C(AS5600_I2C);
 
 // BLDC motor & driver instance
 BLDCMotor motor0 = BLDCMotor(7, 4.8, 147);
 BLDCMotor motor1 = BLDCMotor(7, 4.8, 147);
 BLDCMotor motor2 = BLDCMotor(7, 4.8, 147);
+BLDCMotor motor3 = BLDCMotor(7, 4.8, 147);
+BLDCMotor motor4 = BLDCMotor(7, 4.8, 147);
+BLDCMotor motor5 = BLDCMotor(7, 4.8, 147);
 
 #ifdef TEENSY0
 BLDCDriver3PWM driver0 = BLDCDriver3PWM(11, 10, 9, 8);
@@ -46,6 +67,15 @@ BLDCDriver3PWM driver2 = BLDCDriver3PWM(3, 2, 1, 0);
 BLDCDriver3PWM driver0 = BLDCDriver3PWM(3, 2, 1, 0);
 BLDCDriver3PWM driver1 = BLDCDriver3PWM(7, 6, 5, 4);
 BLDCDriver3PWM driver2 = BLDCDriver3PWM(11, 10, 9, 8);
+#endif
+
+#ifdef MICROMOD
+BLDCDriver3PWM driver0 = BLDCDriver3PWM(23, 7, 8, 44);
+BLDCDriver3PWM driver1 = BLDCDriver3PWM(15, 14, 3, 43);
+BLDCDriver3PWM driver2 = BLDCDriver3PWM(5, 29, 4, 42);
+BLDCDriver3PWM driver3 = BLDCDriver3PWM(6, 9, 33, 45);
+BLDCDriver3PWM driver4 = BLDCDriver3PWM(12, 11, 13, 26);
+BLDCDriver3PWM driver5 = BLDCDriver3PWM(10, 2, 1, 32);
 #endif
 
 // voltage set point variable
@@ -73,6 +103,21 @@ void MotorSensorSetup(BLDCMotor& aMotor, MagneticSensorSoftI2C& aSensor, BLDCDri
       //SWire2 = new SoftwareI2C();
       SWire2.begin();
       aSensor.init(&SWire2);
+      break;
+    case 3:
+      //SWire2 = new SoftwareI2C();
+      SWire3.begin();
+      aSensor.init(&SWire3);
+      break;
+    case 4:
+      //SWire2 = new SoftwareI2C();
+      SWire4.begin();
+      aSensor.init(&SWire4);
+      break;
+    case 5:
+      //SWire2 = new SoftwareI2C();
+      SWire5.begin();
+      aSensor.init(&SWire5);
       break;
     default:
       return;
@@ -109,6 +154,15 @@ void MotorSensorSetup(BLDCMotor& aMotor, MagneticSensorSoftI2C& aSensor, BLDCDri
     case 2:
       SWire2.end();
       break;
+    case 3:
+      SWire3.end();
+      break;
+    case 4:
+      SWire4.end();
+      break;
+    case 5:
+      SWire5.end();
+      break;
     default:
       return;
   }
@@ -122,6 +176,9 @@ void setup() {
   MotorSensorSetup(motor0,sensor0,driver0,0);
   MotorSensorSetup(motor1,sensor1,driver1,1);
   MotorSensorSetup(motor2,sensor2,driver2,2);
+  MotorSensorSetup(motor3,sensor3,driver3,3);
+  MotorSensorSetup(motor4,sensor4,driver4,4);
+  MotorSensorSetup(motor5,sensor5,driver5,5);
 
   // add target command T
   //command.add('T', doTarget, "target voltage");
@@ -143,6 +200,15 @@ void MotorLoop(BLDCMotor& aMotor,MagneticSensorSoftI2C& aSensor, uint8_t aChanne
       break;
     case 2:
       SWire2.begin();
+      break;
+    case 3:
+      SWire3.begin();
+      break;
+    case 4:
+      SWire4.begin();
+      break;
+    case 5:
+      SWire5.begin();
       break;
     default:
       return;
@@ -195,6 +261,33 @@ void MotorLoop(BLDCMotor& aMotor,MagneticSensorSoftI2C& aSensor, uint8_t aChanne
       Serial.print("Motor2:");
       Serial.println(String(fingerPosition->GetFingerPosition()).c_str());
       break;
+    case 3:
+      if(fingerPosition3 == NULL)
+      {
+        fingerPosition3 = new Gauntl33t::FingerPosition(angle);
+      }
+      fingerPosition = fingerPosition3;
+      Serial.print("Motor3:");
+      Serial.println(String(fingerPosition->GetFingerPosition()).c_str());
+      break;
+    case 4:
+      if(fingerPosition4 == NULL)
+      {
+        fingerPosition4 = new Gauntl33t::FingerPosition(angle);
+      }
+      fingerPosition = fingerPosition4;
+      Serial.print("Motor4:");
+      Serial.println(String(fingerPosition->GetFingerPosition()).c_str());
+      break;
+    case 5:
+      if(fingerPosition5 == NULL)
+      {
+        fingerPosition5 = new Gauntl33t::FingerPosition(angle);
+      }
+      fingerPosition = fingerPosition5;
+      Serial.print("Motor5:");
+      Serial.println(String(fingerPosition->GetFingerPosition()).c_str());
+      break;
     default:
       fingerPosition = fingerPosition0;
   }
@@ -222,6 +315,15 @@ void MotorLoop(BLDCMotor& aMotor,MagneticSensorSoftI2C& aSensor, uint8_t aChanne
     case 2:
       SWire2.end();
       break;
+    case 3:
+      SWire3.end();
+      break;
+    case 4:
+      SWire4.end();
+      break;
+    case 5:
+      SWire5.end();
+      break;
     default:
       return;
   }
@@ -232,6 +334,9 @@ void loop() {
   MotorLoop(motor0,sensor0,0);
   MotorLoop(motor1,sensor1,1);
   MotorLoop(motor2,sensor2,2);
+  MotorLoop(motor3,sensor3,3);
+  MotorLoop(motor4,sensor4,4);
+  MotorLoop(motor5,sensor5,5);
   
   // user communication
   command.run();
