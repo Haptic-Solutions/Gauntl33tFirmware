@@ -1,3 +1,4 @@
+//Modified MagneticSensorI2C.ino to use SoftWire Library
 #ifndef MAGNETICSENSORSOFTI2C_LIB_H
 #define MAGNETICSENSORSOFTI2C_LIB_H
 
