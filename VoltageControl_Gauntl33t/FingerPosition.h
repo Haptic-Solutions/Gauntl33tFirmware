@@ -25,6 +25,8 @@ namespace Gauntl33t
     /**
      * Constructor.
      * Initialize finger position with starting sensor angle.
+     * Set initializer list variables to aStartAngle.
+     * @param aStartAngle to initialize finger position with.
      */
     FingerPosition(float aStartAngle);
     /**
