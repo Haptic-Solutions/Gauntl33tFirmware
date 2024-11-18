@@ -1,3 +1,4 @@
+//Modified MagneticSensorI2C.ino to use SoftI2C Library
 #include "MagneticSensorSoftI2C.h"
 
 
