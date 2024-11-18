@@ -1,19 +1,47 @@
 /**
- * Torque control example using voltage control loop.
- * 
- * Most of the low-end BLDC driver boards doesn't have current measurement therefore SimpleFOC offers 
- * you a way to control motor torque by setting the voltage to the motor instead hte current. 
- * 
- * This makes the BLDC motor effectively a DC motor, and you can use it in a same way.
+ * Gauntl33t Haptic Glove Firmware.
+ * Based off of voltage_control.ino example for SimpleFOC
+ */
+
+/**Micro Controller Defines
+ * Uncomment 1 Microcontroller
+ * If using 2 Teensies uncomment TEENSY0 when programming one Teensy and uncomment TEENSY1 when programming the other Teensy.
+ * If using Teensy Micromod uncomment MICROMOD
+ * TODO add STM32_0 and STM32_1 for new boards
  */
 
 //#define TEENSY0 //U1
 //#define TEENSY1  //U2
 #define MICROMOD
+
+/**
+ * Motor Define. Uncomment 1 line depending on motor type
+ * IFLIGHT - Iflight IPower 2804
+ * GOPRO - 2204 260KV
+ * YUNEEC - YUNEEC 1613S (Not recommended. Get Hot.)
+ */
+
 #define IFLIGHT
 //#define GOPRO
 //#define YUNEEC
 
+/**
+ * Set Power Supply Voltage here.
+ */
+const float POWERSUPPLYVOLTAGE = 20.0f;
+
+/**
+ * Set the Max and Min target voltages such that you do not draw too much current.
+ * If you are feeding in 10 volts you can set the max closer to 10.
+ * If you are feeding in a higher voltage such as 20 volts you may want to set
+ * this value closer to 1.
+ */
+const float MAXTARGETVOLTAGE = 1.0f;
+const float MINTARGETVOLTAGE = 0.0f;
+
+/**
+ * Include Libraries.
+ */
 #include <iostream>
 #include <unordered_map>
 #include <SimpleFOC.h>
@@ -22,9 +50,12 @@
 #include <string>
 #include "MagneticSensorSoftI2C.h"
 #include <ArduinoJson.h>
-
 #include <SoftWire.h>
 
+/**
+ * Create dictonaries of SoftWires to be used for sensors.
+ * For some microconrollers you may be able to switch back to regular Wires if prefered.
+ */
 #if defined(TEENSY0) || defined(TEENSY1)
 std::unordered_map<uint8_t,SoftWire*> sWires(
   {
@@ -46,8 +77,14 @@ std::unordered_map<uint8_t,SoftWire*> sWires(
     });
 #endif
 
-//finger position classes
+/**
+ * Finger position classes for keeping track of finger movement.
+ */
 std::unordered_map<uint8_t,Gauntl33t::FingerPosition*> fingerPositions;
+
+/**
+ * Define number of motors based on microcontroller.
+ */
 
 #if defined(TEENSY0) || defined(TEENSY1)
 const uint8_t NUMBER_MOTORS = 3;
@@ -56,12 +93,19 @@ const uint8_t NUMBER_MOTORS = 3;
 const uint8_t NUMBER_MOTORS = 6;
 #endif
 
-// magnetic sensor instance - SPI
+/**
+ * Map of I2C Magnetic Sensors.
+ */
 std::unordered_map<uint8_t,MagneticSensorSoftI2C*> sensorx;
 
-// BLDC motor & driver instance
+/**
+ * Map of Motors.
+ */
 std::unordered_map<uint8_t, BLDCMotor*> motorx;
 
+/**
+ * Define Map of Drivers based on microcontroller.
+ */
 #ifdef TEENSY0
 std::unordered_map<uint8_t,BLDCDriver3PWM*> driverx(
   {
@@ -92,44 +136,68 @@ std::unordered_map<uint8_t,BLDCDriver3PWM*> driverx(
   });
 #endif
 
-// voltage set point variable
+/**
+ * Set target Voltages for each motor
+ */
 float target_voltages[6] = {0.2f,0.2f,0.2f,0.2f,0.2f,0.2f};
 
+/**
+ * Array for tracking time between frames sent for each finger.
+ * Helps to set message frequency to avoid too much network congestion.
+ */
 elapsedMillis fingerTimes[6] = {0,0,0,0,0,0};
 
+/**
+ * Function used to setup the Motors and Sensors
+ * @Param aMotor to be setup.
+ * @Param aSensor to be setup.
+ * @Param aDriver to be setup.
+ * @Param aChannel to be setup.
+ */
 void MotorSensorSetup(BLDCMotor* aMotor, MagneticSensorSoftI2C* aSensor, BLDCDriver3PWM* aDriver, uint8_t aChannel)
 {
+  //Check if channel exists before proceeding. If not return.
   if(sWires.find(aChannel) == sWires.end())
   {
     return;
   }
+
+  //Call begin function for appropriate soft wire i2c channel.
   sWires[aChannel]->begin();
+  //Initialize sensor with soft wire i2c channel.
   aSensor->init(sWires[aChannel]);
-  
+  //Link motor to sensor.
   aMotor->linkSensor(aSensor);
 
-  // power supply voltage
-  aDriver->voltage_power_supply = 20.0f;
+  //Set Power supply voltage
+  aDriver->voltage_power_supply = POWERSUPPLYVOLTAGE;
+  //Initialize motor driver
   aDriver->init();
+  //Link driver to motor
   aMotor->linkDriver(aDriver);
 
-  // aligning voltage 
+  // Set the voltage to be used while aligning the motors
   aMotor->voltage_sensor_align = 1.0f;
-  // choose FOC modulation (optional)
+  // Choose FOC modulation (optional)
   aMotor->foc_modulation = FOCModulationType::SpaceVectorPWM;
-  // set motion control loop to be used
+  // Set motion control loop to be used.
   aMotor->controller = MotionControlType::torque;
-  // comment out if not needed
+  // Uncomment for more SimpleFOC debugging.
   //aMotor.useMonitoring(Serial);
-  // initialize motor
+  // Initialize the motor.
   aMotor->init();
-  // align sensor and start FOC
+  // Align the sensor and start FOC.
   aMotor->initFOC();
-
+  // Call end on soft wire i2c channel.
   sWires[aChannel]->end();
 }
 
+/**
+ * setup function.
+ * Initializes everything before the main loop.
+ */
 void setup() {
+  //Setup motors and sensors based on motor type.
   for(int i = 0; i < NUMBER_MOTORS; i++)
   {
     sensorx[i] = new MagneticSensorSoftI2C(AS5600_I2C);
@@ -143,48 +211,55 @@ void setup() {
     motorx[i] = new BLDCMotor(5, 5.55, 610);
     #endif
   }
-  // use monitoring with serial 
+  //Setup Serial2 for communication.
   Serial2.begin(115200);
-  
+
+  //Call MotorSensorSetup function to complete setup on motors and sensors.
   for(uint8_t i = 0; i < NUMBER_MOTORS; i++)
   {
     MotorSensorSetup(motorx[i],sensorx[i],driverx[i],i);
   }
 
-  //Serial2.println(F("Motor ready."));
-  //Serial2.println(F("Set the target voltage using serial terminal:"));
+  //Wait a second before continuing to main loop.
   _delay(1000);
 }
 
+/**
+ * Performs motor portion of main loop
+ * @param aMotor to be updated.
+ * @param aSensor to be updated.
+ * @param aChannel to be updated.
+ */
 void MotorLoop(BLDCMotor* aMotor,MagneticSensorSoftI2C* aSensor, uint8_t aChannel)
 {
+  //Check if channel exists. If not return.
   if(sWires.find(aChannel) == sWires.end())
   {
     return;
   }
+  //Call begin on sWire I2C channel.
   sWires[aChannel]->begin();
 
-  // main FOC algorithm function
-  // the faster you run this function the better
-  // Arduino UNO loop  ~1kHz
-  // Bluepill loop ~10kHz 
+  //Run the FOC Algorithm.
   aMotor->loopFOC();
 
-  // Motion control function
-  // velocity, position or voltage (defined in motor.controller)
-  // this function can be run at much lower frequency than loopFOC() function
-  // You can also use motor.move() and set the motor.target in the code
-  if((target_voltages[aChannel] <= 1.0) && (target_voltages[aChannel]>=0.00))
+  // If the target voltage is in an acceptable range.
+  // Set the target voltage.
+  if((target_voltages[aChannel] <= MAXTARGETVOLTAGE) && (target_voltages[aChannel] >= MINTARGETVOLTAGE ))
   {
     aMotor->move(target_voltages[aChannel]);
   }
-  
+
+  //Get the sensor angle.
   auto angle = aSensor->getSensorAngle();
 
+  //Check if finger position exists for a motor. If not create it.
   if(fingerPositions.find(aChannel) == fingerPositions.end())
   {
     fingerPositions[aChannel] = new Gauntl33t::FingerPosition(angle);
   }
+
+  //Update finger position with sensor angle.
   fingerPositions[aChannel]->SensorUpdatePos(angle);
   auto fingerPos = fingerPositions[aChannel]->GetFingerPosition();
   
@@ -196,6 +271,9 @@ void MotorLoop(BLDCMotor* aMotor,MagneticSensorSoftI2C* aSensor, uint8_t aChanne
   auto tempChannel = aChannel + 3;
   auto tempFingerPos = fingerPos;
   #endif
+
+  //If it has been long enough since last finger position was sent.
+  //Send finger position as a JSON style message.
   if(fingerTimes[aChannel]>100)
   {
     fingerTimes[aChannel]=0;
@@ -206,18 +284,30 @@ void MotorLoop(BLDCMotor* aMotor,MagneticSensorSoftI2C* aSensor, uint8_t aChanne
     position += "]]}\n";
     Serial2.write(position.c_str());
   }
+  //Call end on sWire i2c channel.
   sWires[aChannel]->end();
 }
 
+/**
+ * JsonDoc for processing received Json messages.
+ */
 StaticJsonDocument<200> JsonDoc;
+
+/**
+ * Process JSON messages
+ * @param COMMAND handle received COMMAND message.
+ */
 void jsonProcess(String COMMAND) 
 {
-  //Serial2.write("received\n");
+  //Clear the previous JSON message.
   JsonDoc.clear();
+  //Read in new JSON command.
   auto JsonError = deserializeJson(JsonDoc, COMMAND.c_str());
+  //Handle error case.
   if (JsonError) {
     //todo add errors
   } 
+  //Get and set target voltages for all fingers.
   else
   {
     if (JsonDoc["TV"].as<String>().length() >= 2 && JsonDoc["TV"].as<String>() != "null") { 
@@ -258,12 +348,17 @@ void jsonProcess(String COMMAND)
   }
 }
 
+/**
+ * main loop function. Call sub loops for handling motors and JSON messages.
+ */
 void loop() 
 {
+  //Update all motors and read all positions to send finger positions.
   for(uint8_t i = 0; i < NUMBER_MOTORS; i++)
   {
     MotorLoop(motorx[i],sensorx[i],i);
   }
+  //Read in target voltages for all motors.
   if (Serial2.available()) {
     auto buffer =Serial2.readStringUntil('\n');
     jsonProcess(buffer);
