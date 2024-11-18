@@ -2,26 +2,39 @@
 #define FINGERPOSITION_H
 namespace Gauntl33t
 {
+  /**
+   * Define PI2 for convenience.
+   */
   namespace MATH
   {
-  //const float PI = 3.1415926535897932384626433832795;
   const float PI2 = PI * 2.0;
   }
 
+  /**
+   * Class for tracking finger position.
+   */
   class FingerPosition
   {
     private:
-    float mMaxAngle_Cumulative;
-    float mMinAngle_Cumulative;
-    float mCurAngle_Cumulative;
-    float mPrevAngle_Cumulative;
-    float mPrevAngle;
+    float mMaxAngle_Cumulative;  //Keeps track of max cumulative angle recorded.
+    float mMinAngle_Cumulative;  //Keeps track of min cumulative angle recorded.
+    float mCurAngle_Cumulative;  //Keeps track of the cumulative current angle.
+    float mPrevAngle_Cumulative; //Stores the previous cumulative angle.
+    float mPrevAngle; //Stores the raw previous angle
     public:
-    //Initialize finger position with starting sensor angle.
+    /**
+     * Constructor.
+     * Initialize finger position with starting sensor angle.
+     */
     FingerPosition(float aStartAngle);
-    //Call every frame with new angle so that the position is acturate.
+    /**
+     * Call every frame with new angle so that the position is acturate.
+     * @param aAngle read from sensor to be used in updating finger position.
+     */
     void SensorUpdatePos(float aAngle);
-    //return normalized value between 0.0 and 1.0 of finger position.
+    /**
+     * Returns normalized value between 0.0 and 1.0 of finger position.
+     */
     float GetFingerPosition();
   };
 }
