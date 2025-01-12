@@ -3,7 +3,7 @@
 *
 * TODO
 * -Add ways to set and store WiFi Credentials dynamically over bluetooth in a secure way.
-* -See if there is a better way of achieving soft serial for high speed communication with multiple processors when USB Is in Use and both other physical ports are not accessible.
+* -See if there is a better way of achieving soft serial for high speed communication with multiple processors when USB is in use and both other physical ports are not accessible.
 *
 *  Referenced 
 *  - https://github.com/espressif/arduino-esp32/blob/master/libraries/AsyncUDP/examples/AsyncUDPServer/AsyncUDPServer.ino
