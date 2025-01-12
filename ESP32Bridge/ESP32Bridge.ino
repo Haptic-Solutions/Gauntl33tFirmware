@@ -2,7 +2,7 @@
 * Gauntl33t ESP32Bridge is designed to allow an ESP-32 board or micromodule to perform the task of passing messages back and forth from other processors and a host over Serial, Bluetooth or WiFi. 
 *
 * TODO
-* -Add ways to set and store dynamically over bluetooth in a secure way.
+* -Add ways to set and store WiFi Credentials dynamically over bluetooth in a secure way.
 * -See if there is a better way of achieving soft serial for high speed communication with multiple processors when USB Is in Use and both other physical ports are not accessible.
 *
 *  Referenced 
