@@ -5,3 +5,4 @@ Used Libraries
 - SimpleFOC Library https://github.com/simplefoc/Arduino-FOC
 - ArduinoJson https://github.com/bblanchon/ArduinoJson
 - SoftWire https://github.com/stevemarple/SoftWire
+- SoftwareSerial https://github.com/plerup/espsoftwareserial
