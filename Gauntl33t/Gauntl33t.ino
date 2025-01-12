@@ -28,7 +28,7 @@
 /**
  * Set Power Supply Voltage here.
  */
-const float POWERSUPPLYVOLTAGE = 20.0f;
+const float POWERSUPPLYVOLTAGE = 12.0f;
 
 /**
  * Set the Max and Min target voltages such that you do not draw too much current.
